@@ -4,6 +4,7 @@ import {
   IS_GOOGLE_SSO_ENABLED,
   IS_MICROSOFT_SSO_ENABLED,
   IS_OIDC_SSO_ENABLED,
+  IS_PASSPORT_SSO_ENABLED,
   OIDC_PROVIDER_LABEL,
 } from '@documenso/lib/constants/auth';
 
@@ -34,12 +35,14 @@ export function loader() {
   const isGoogleSSOEnabled = IS_GOOGLE_SSO_ENABLED;
   const isMicrosoftSSOEnabled = IS_MICROSOFT_SSO_ENABLED;
   const isOIDCSSOEnabled = IS_OIDC_SSO_ENABLED;
+  const isPassportSSOEnabled = IS_PASSPORT_SSO_ENABLED;
   const oidcProviderLabel = OIDC_PROVIDER_LABEL;
 
   return {
     isGoogleSSOEnabled,
     isMicrosoftSSOEnabled,
     isOIDCSSOEnabled,
+    isPassportSSOEnabled,
     oidcProviderLabel,
   };
 }
@@ -49,8 +52,13 @@ export default function Layout() {
 }
 
 export function ErrorBoundary({ loaderData }: Route.ErrorBoundaryProps) {
-  const { isGoogleSSOEnabled, isMicrosoftSSOEnabled, isOIDCSSOEnabled, oidcProviderLabel } =
-    loaderData || {};
+  const {
+    isGoogleSSOEnabled,
+    isMicrosoftSSOEnabled,
+    isOIDCSSOEnabled,
+    isPassportSSOEnabled,
+    oidcProviderLabel,
+  } = loaderData || {};
 
   const error = useRouteError();
 
@@ -63,6 +71,7 @@ export function ErrorBoundary({ loaderData }: Route.ErrorBoundaryProps) {
           isGoogleSSOEnabled={isGoogleSSOEnabled}
           isMicrosoftSSOEnabled={isMicrosoftSSOEnabled}
           isOIDCSSOEnabled={isOIDCSSOEnabled}
+          isPassportSSOEnabled={isPassportSSOEnabled}
           oidcProviderLabel={oidcProviderLabel}
           email={error.data.email}
           returnTo={error.data.returnTo}

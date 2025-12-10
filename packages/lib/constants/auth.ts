@@ -8,6 +8,7 @@ export const IDENTITY_PROVIDER_NAME: Record<string, string> = {
   GOOGLE: 'Google',
   MICROSOFT: 'Microsoft',
   OIDC: 'OIDC',
+  PASSPORT: 'Passport',
 };
 
 export const IS_GOOGLE_SSO_ENABLED = Boolean(
@@ -22,6 +23,12 @@ export const IS_OIDC_SSO_ENABLED = Boolean(
   env('NEXT_PRIVATE_OIDC_WELL_KNOWN') &&
     env('NEXT_PRIVATE_OIDC_CLIENT_ID') &&
     env('NEXT_PRIVATE_OIDC_CLIENT_SECRET'),
+);
+
+export const IS_PASSPORT_SSO_ENABLED = Boolean(
+  env('PASSPORT_API_BASE_URL') &&
+    env('PASSPORT_API_TOKEN') &&
+    (env('PASSPORT_CLIENT_ID') || env('NEXT_PRIVATE_OIDC_CLIENT_ID')),
 );
 
 export const OIDC_PROVIDER_LABEL = env('NEXT_PRIVATE_OIDC_PROVIDER_LABEL');

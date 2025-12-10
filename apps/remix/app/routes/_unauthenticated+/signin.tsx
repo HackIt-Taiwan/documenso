@@ -8,6 +8,7 @@ import {
   IS_GOOGLE_SSO_ENABLED,
   IS_MICROSOFT_SSO_ENABLED,
   IS_OIDC_SSO_ENABLED,
+  IS_PASSPORT_SSO_ENABLED,
   OIDC_PROVIDER_LABEL,
 } from '@documenso/lib/constants/auth';
 import { env } from '@documenso/lib/utils/env';
@@ -29,6 +30,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const isGoogleSSOEnabled = IS_GOOGLE_SSO_ENABLED;
   const isMicrosoftSSOEnabled = IS_MICROSOFT_SSO_ENABLED;
   const isOIDCSSOEnabled = IS_OIDC_SSO_ENABLED;
+  const isPassportSSOEnabled = IS_PASSPORT_SSO_ENABLED;
   const oidcProviderLabel = OIDC_PROVIDER_LABEL;
 
   let returnTo = new URL(request.url).searchParams.get('returnTo') ?? undefined;
@@ -43,6 +45,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     isGoogleSSOEnabled,
     isMicrosoftSSOEnabled,
     isOIDCSSOEnabled,
+    isPassportSSOEnabled,
     oidcProviderLabel,
     returnTo,
   };
@@ -53,6 +56,7 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
     isGoogleSSOEnabled,
     isMicrosoftSSOEnabled,
     isOIDCSSOEnabled,
+    isPassportSSOEnabled,
     oidcProviderLabel,
     returnTo,
   } = loaderData;
@@ -84,6 +88,7 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
           isMicrosoftSSOEnabled={isMicrosoftSSOEnabled}
           isOIDCSSOEnabled={isOIDCSSOEnabled}
           oidcProviderLabel={oidcProviderLabel}
+          isPassportSSOEnabled={isPassportSSOEnabled}
           returnTo={returnTo}
         />
 

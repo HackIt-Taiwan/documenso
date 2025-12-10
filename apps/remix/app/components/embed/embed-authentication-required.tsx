@@ -12,6 +12,8 @@ export type EmbedAuthenticationRequiredProps = {
   isMicrosoftSSOEnabled?: boolean;
   isOIDCSSOEnabled?: boolean;
   oidcProviderLabel?: string;
+  isPassportSSOEnabled?: boolean;
+  passportProviderLabel?: string;
 };
 
 export const EmbedAuthenticationRequired = ({
@@ -21,6 +23,8 @@ export const EmbedAuthenticationRequired = ({
   // isMicrosoftSSOEnabled,
   // isOIDCSSOEnabled,
   // oidcProviderLabel,
+  // isPassportSSOEnabled,
+  // passportProviderLabel,
 }: EmbedAuthenticationRequiredProps) => {
   return (
     <div className="flex min-h-[100dvh] w-full items-center justify-center">

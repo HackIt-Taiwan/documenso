@@ -16,6 +16,25 @@ export type OAuthClientOptions = {
   bypassEmailVerification?: boolean;
 };
 
+type PassportConsentOptions = {
+  id: string;
+  clientId: string;
+  apiBaseUrl: string;
+  apiToken: string;
+  redirectUrl: string;
+  requestedFields: string[];
+};
+
+const normalizePassportApiBaseUrl = () => {
+  const baseUrl = env('PASSPORT_API_BASE_URL')?.replace(/\/+$/, '') ?? '';
+
+  if (!baseUrl) {
+    return '';
+  }
+
+  return /\/api$/i.test(baseUrl) ? baseUrl : `${baseUrl}/api`;
+};
+
 export const GoogleAuthOptions: OAuthClientOptions = {
   id: 'google',
   scope: ['openid', 'email', 'profile'],
@@ -44,4 +63,13 @@ export const OidcAuthOptions: OAuthClientOptions = {
   redirectUrl: `${NEXT_PUBLIC_WEBAPP_URL()}/api/auth/callback/oidc`,
   wellKnownUrl: env('NEXT_PRIVATE_OIDC_WELL_KNOWN') ?? '',
   bypassEmailVerification: env('NEXT_PRIVATE_OIDC_SKIP_VERIFY') === 'true',
+};
+
+export const PassportAuthOptions: PassportConsentOptions = {
+  id: 'passport',
+  clientId: env('PASSPORT_CLIENT_ID') ?? env('NEXT_PRIVATE_OIDC_CLIENT_ID') ?? '',
+  apiBaseUrl: normalizePassportApiBaseUrl(),
+  apiToken: env('PASSPORT_API_TOKEN') ?? '',
+  redirectUrl: `${NEXT_PUBLIC_WEBAPP_URL()}/api/auth/callback/passport`,
+  requestedFields: ['email', 'nickname', 'avatar_url', 'preferred_language'],
 };

@@ -8,7 +8,7 @@ import { Trans } from '@lingui/react/macro';
 import { browserSupportsWebAuthn, startAuthentication } from '@simplewebauthn/browser';
 import { KeyRoundIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { FaIdCardClip } from 'react-icons/fa6';
+import { FaIdCardClip, FaShieldHalved } from 'react-icons/fa6';
 import { FcGoogle } from 'react-icons/fc';
 import { Link, useNavigate } from 'react-router';
 import { match } from 'ts-pattern';
@@ -73,6 +73,8 @@ export type SignInFormProps = {
   isMicrosoftSSOEnabled?: boolean;
   isOIDCSSOEnabled?: boolean;
   oidcProviderLabel?: string;
+  isPassportSSOEnabled?: boolean;
+  passportProviderLabel?: string;
   returnTo?: string;
 };
 
@@ -83,6 +85,8 @@ export const SignInForm = ({
   isMicrosoftSSOEnabled,
   isOIDCSSOEnabled,
   oidcProviderLabel,
+  isPassportSSOEnabled,
+  passportProviderLabel,
   returnTo,
 }: SignInFormProps) => {
   const { _ } = useLingui();
@@ -98,7 +102,8 @@ export const SignInForm = ({
     'totp' | 'backup'
   >('totp');
 
-  const hasSocialAuthEnabled = isGoogleSSOEnabled || isMicrosoftSSOEnabled || isOIDCSSOEnabled;
+  const hasSocialAuthEnabled =
+    isGoogleSSOEnabled || isMicrosoftSSOEnabled || isOIDCSSOEnabled || isPassportSSOEnabled;
 
   const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 
@@ -308,6 +313,22 @@ export const SignInForm = ({
     }
   };
 
+  const onSignInWithPassportClick = async () => {
+    try {
+      await authClient.passport.signIn({
+        redirectPath,
+      });
+    } catch (err) {
+      toast({
+        title: _(msg`An unknown error occurred`),
+        description: _(
+          msg`We encountered an unknown error while attempting to sign you In. Please try again later.`,
+        ),
+        variant: 'destructive',
+      });
+    }
+  };
+
   useEffect(() => {
     const hash = window.location.hash.slice(1);
 
@@ -441,6 +462,20 @@ export const SignInForm = ({
                 >
                   <FaIdCardClip className="mr-2 h-5 w-5" />
                   {oidcProviderLabel || 'OIDC'}
+                </Button>
+              )}
+
+              {isPassportSSOEnabled && (
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  className="bg-background text-muted-foreground border"
+                  disabled={isSubmitting}
+                  onClick={onSignInWithPassportClick}
+                >
+                  <FaShieldHalved className="mr-2 h-5 w-5" />
+                  {passportProviderLabel || 'Passport'}
                 </Button>
               )}
             </>

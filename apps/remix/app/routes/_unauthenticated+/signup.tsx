@@ -4,6 +4,7 @@ import {
   IS_GOOGLE_SSO_ENABLED,
   IS_MICROSOFT_SSO_ENABLED,
   IS_OIDC_SSO_ENABLED,
+  IS_PASSPORT_SSO_ENABLED,
 } from '@documenso/lib/constants/auth';
 import { env } from '@documenso/lib/utils/env';
 import { isValidReturnTo, normalizeReturnTo } from '@documenso/lib/utils/is-valid-return-to';
@@ -24,6 +25,7 @@ export function loader({ request }: Route.LoaderArgs) {
   const isGoogleSSOEnabled = IS_GOOGLE_SSO_ENABLED;
   const isMicrosoftSSOEnabled = IS_MICROSOFT_SSO_ENABLED;
   const isOIDCSSOEnabled = IS_OIDC_SSO_ENABLED;
+  const isPassportSSOEnabled = IS_PASSPORT_SSO_ENABLED;
 
   if (NEXT_PUBLIC_DISABLE_SIGNUP === 'true') {
     throw redirect('/signin');
@@ -37,12 +39,19 @@ export function loader({ request }: Route.LoaderArgs) {
     isGoogleSSOEnabled,
     isMicrosoftSSOEnabled,
     isOIDCSSOEnabled,
+    isPassportSSOEnabled,
     returnTo,
   };
 }
 
 export default function SignUp({ loaderData }: Route.ComponentProps) {
-  const { isGoogleSSOEnabled, isMicrosoftSSOEnabled, isOIDCSSOEnabled, returnTo } = loaderData;
+  const {
+    isGoogleSSOEnabled,
+    isMicrosoftSSOEnabled,
+    isOIDCSSOEnabled,
+    isPassportSSOEnabled,
+    returnTo,
+  } = loaderData;
 
   return (
     <SignUpForm
@@ -50,6 +59,7 @@ export default function SignUp({ loaderData }: Route.ComponentProps) {
       isGoogleSSOEnabled={isGoogleSSOEnabled}
       isMicrosoftSSOEnabled={isMicrosoftSSOEnabled}
       isOIDCSSOEnabled={isOIDCSSOEnabled}
+      isPassportSSOEnabled={isPassportSSOEnabled}
       returnTo={returnTo}
     />
   );

@@ -5,6 +5,7 @@ import { AppError } from '@documenso/lib/errors/app-error';
 import { GoogleAuthOptions, MicrosoftAuthOptions, OidcAuthOptions } from '../config';
 import { handleOAuthCallbackUrl } from '../lib/utils/handle-oauth-callback-url';
 import { handleOAuthOrganisationCallbackUrl } from '../lib/utils/handle-oauth-organisation-callback-url';
+import { handlePassportCallback } from '../lib/utils/handle-passport-consent';
 import type { HonoAuthContext } from '../types/context';
 
 /**
@@ -52,4 +53,9 @@ export const callbackRoute = new Hono<HonoAuthContext>()
    */
   .get('/microsoft', async (c) =>
     handleOAuthCallbackUrl({ c, clientOptions: MicrosoftAuthOptions }),
-  );
+  )
+
+  /**
+   * Passport consent callback verification.
+   */
+  .get('/passport', handlePassportCallback);

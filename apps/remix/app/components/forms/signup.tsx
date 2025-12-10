@@ -6,7 +6,7 @@ import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 import { useForm } from 'react-hook-form';
-import { FaIdCardClip } from 'react-icons/fa6';
+import { FaIdCardClip, FaShieldHalved } from 'react-icons/fa6';
 import { FcGoogle } from 'react-icons/fc';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { z } from 'zod';
@@ -68,6 +68,7 @@ export type SignUpFormProps = {
   isGoogleSSOEnabled?: boolean;
   isMicrosoftSSOEnabled?: boolean;
   isOIDCSSOEnabled?: boolean;
+  isPassportSSOEnabled?: boolean;
   returnTo?: string;
 };
 
@@ -77,6 +78,7 @@ export const SignUpForm = ({
   isGoogleSSOEnabled,
   isMicrosoftSSOEnabled,
   isOIDCSSOEnabled,
+  isPassportSSOEnabled,
   returnTo,
 }: SignUpFormProps) => {
   const { _ } = useLingui();
@@ -88,7 +90,8 @@ export const SignUpForm = ({
 
   const utmSrc = searchParams.get('utm_source') ?? null;
 
-  const hasSocialAuthEnabled = isGoogleSSOEnabled || isMicrosoftSSOEnabled || isOIDCSSOEnabled;
+  const hasSocialAuthEnabled =
+    isGoogleSSOEnabled || isMicrosoftSSOEnabled || isOIDCSSOEnabled || isPassportSSOEnabled;
 
   const form = useForm<TSignUpFormSchema>({
     values: {
@@ -171,6 +174,20 @@ export const SignUpForm = ({
   const onSignUpWithOIDCClick = async () => {
     try {
       await authClient.oidc.signIn();
+    } catch (err) {
+      toast({
+        title: _(msg`An unknown error occurred`),
+        description: _(
+          msg`We encountered an unknown error while attempting to sign you Up. Please try again later.`,
+        ),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const onSignUpWithPassportClick = async () => {
+    try {
+      await authClient.passport.signIn();
     } catch (err) {
       toast({
         title: _(msg`An unknown error occurred`),
@@ -382,6 +399,22 @@ export const SignUpForm = ({
                   >
                     <FaIdCardClip className="mr-2 h-5 w-5" />
                     <Trans>Sign Up with OIDC</Trans>
+                  </Button>
+                </>
+              )}
+
+              {isPassportSSOEnabled && (
+                <>
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant={'outline'}
+                    className="bg-background text-muted-foreground border"
+                    disabled={isSubmitting}
+                    onClick={onSignUpWithPassportClick}
+                  >
+                    <FaShieldHalved className="mr-2 h-5 w-5" />
+                    <Trans>Sign Up with Passport</Trans>
                   </Button>
                 </>
               )}

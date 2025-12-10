@@ -303,6 +303,26 @@ export class AuthClient {
     },
   };
 
+  public passport = {
+    signIn: async ({ redirectPath }: { redirectPath?: string } = {}) => {
+      const response = await this.client['oauth'].authorize.passport.$post({
+        json: { redirectPath },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+
+        throw AppError.parseError(error);
+      }
+
+      const data = await response.json();
+
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+      }
+    },
+  };
+
   public microsoft = {
     signIn: async ({ redirectPath }: { redirectPath?: string } = {}) => {
       const response = await this.client['oauth'].authorize.microsoft.$post({
