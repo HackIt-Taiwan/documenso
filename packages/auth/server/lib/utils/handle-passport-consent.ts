@@ -267,13 +267,7 @@ const validateRedirect = (storedRedirect: string, storedState: string) => {
   return normalizeReturnTo(redirectPath) || '/';
 };
 
-export const handlePassportAuthorize = async ({
-  c,
-  redirectPath,
-}: {
-  c: Context;
-  redirectPath?: string;
-}) => {
+const preparePassportAuthorize = async (c: Context, redirectPath?: string) => {
   const state = generateState();
 
   const restartUri = buildRestartUri(PassportAuthOptions.redirectUrl);
@@ -286,7 +280,31 @@ export const handlePassportAuthorize = async ({
     setCookie(c, PASSPORT_REDIRECT_COOKIE, `${state} ${redirectPath}`, passportCookieOptions);
   }
 
+  return consentUrl;
+};
+
+export const handlePassportAuthorize = async ({
+  c,
+  redirectPath,
+}: {
+  c: Context;
+  redirectPath?: string;
+}) => {
+  const consentUrl = await preparePassportAuthorize(c, redirectPath);
+
   return c.json({ redirectUrl: consentUrl });
+};
+
+export const handlePassportAuthorizeRedirect = async ({
+  c,
+  redirectPath,
+}: {
+  c: Context;
+  redirectPath?: string;
+}) => {
+  const consentUrl = await preparePassportAuthorize(c, redirectPath);
+
+  return c.redirect(consentUrl, 302);
 };
 
 export const handlePassportCallback = async (c: Context) => {

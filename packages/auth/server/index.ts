@@ -16,6 +16,7 @@ import { sessionRoute } from './routes/session';
 import { signOutRoute } from './routes/sign-out';
 import { twoFactorRoute } from './routes/two-factor';
 import type { HonoAuthContext } from './types/context';
+import { handlePassportAuthorizeRedirect } from './lib/utils/handle-passport-consent';
 
 // Note: You must chain routes for Hono RPC client to work.
 export const auth = new Hono<HonoAuthContext>()
@@ -46,6 +47,7 @@ export const auth = new Hono<HonoAuthContext>()
   .route('/', signOutRoute)
   .route('/', accountRoute)
   .route('/callback', callbackRoute)
+  .get('/passport', (c) => handlePassportAuthorizeRedirect({ c }))
   .route('/oauth', oauthRoute)
   .route('/email-password', emailPasswordRoute)
   .route('/passkey', passkeyRoute)

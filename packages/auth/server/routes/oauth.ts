@@ -4,7 +4,10 @@ import { z } from 'zod';
 
 import { GoogleAuthOptions, MicrosoftAuthOptions, OidcAuthOptions } from '../config';
 import { handleOAuthAuthorizeUrl } from '../lib/utils/handle-oauth-authorize-url';
-import { handlePassportAuthorize } from '../lib/utils/handle-passport-consent';
+import {
+  handlePassportAuthorize,
+  handlePassportAuthorizeRedirect,
+} from '../lib/utils/handle-passport-consent';
 import { getOrganisationAuthenticationPortalOptions } from '../lib/utils/organisation-portal';
 import type { HonoAuthContext } from '../types/context';
 
@@ -33,6 +36,15 @@ export const oauthRoute = new Hono<HonoAuthContext>()
     const { redirectPath } = c.req.valid('json');
 
     return handlePassportAuthorize({ c, redirectPath });
+  })
+
+  /**
+   * Passport consent authorize endpoint (redirects immediately).
+   */
+  .get('/authorize/passport', async (c) => {
+    const redirectPath = c.req.query('redirectPath') ?? c.req.query('redirect');
+
+    return handlePassportAuthorizeRedirect({ c, redirectPath });
   })
 
   /**
