@@ -8,6 +8,7 @@ import type { Logger } from 'pino';
 
 import { tsRestHonoApp } from '@documenso/api/hono';
 import { auth } from '@documenso/auth/server';
+import { handlePassportAuthorizeRedirect } from '@documenso/auth/server/lib/utils/handle-passport-consent';
 import { API_V2_BETA_URL, API_V2_URL } from '@documenso/lib/constants/app';
 import { jobsClient } from '@documenso/lib/jobs/client';
 import { TelemetryClient } from '@documenso/lib/server-only/telemetry/telemetry-client';
@@ -98,6 +99,7 @@ app.use('/api/v2/*', rateLimitMiddleware);
 
 // Auth server.
 app.route('/api/auth', auth);
+app.get('/api/auth/passport', (c) => handlePassportAuthorizeRedirect({ c }));
 
 // Files route.
 app.route('/api/files', filesRoute);
