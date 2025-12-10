@@ -83,8 +83,20 @@ const requestPassportConsent = async (
   });
 
   if (!response.ok) {
+    let errorBody: unknown;
+
+    try {
+      errorBody = await response.json();
+    } catch {
+      try {
+        errorBody = await response.text();
+      } catch {
+        errorBody = undefined;
+      }
+    }
+
     throw new AppError(AppErrorCode.INVALID_REQUEST, {
-      message: `Passport consent request failed (${response.status})`,
+      message: `Passport consent request failed (${response.status})${errorBody ? `: ${JSON.stringify(errorBody)}` : ''}`,
       statusCode: response.status,
     });
   }
