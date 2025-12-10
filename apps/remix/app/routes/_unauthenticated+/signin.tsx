@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Trans } from '@lingui/react/macro';
 import { Link, redirect } from 'react-router';
 
+import { authClient } from '@documenso/auth/client';
 import { getOptionalSession } from '@documenso/auth/server/lib/utils/get-session';
 import {
   IS_GOOGLE_SSO_ENABLED,
@@ -62,6 +63,7 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
   } = loaderData;
 
   const [isEmbeddedRedirect, setIsEmbeddedRedirect] = useState(false);
+  const [isAutoRedirecting, setIsAutoRedirecting] = useState(false);
 
   useEffect(() => {
     const hash = window.location.hash.slice(1);
@@ -70,6 +72,16 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
 
     setIsEmbeddedRedirect(params.get('embedded') === 'true');
   }, []);
+
+  useEffect(() => {
+    if (!isPassportSSOEnabled) return;
+    if (isAutoRedirecting) return;
+    setIsAutoRedirecting(true);
+
+    authClient.passport
+      .signIn({ redirectPath: returnTo })
+      .catch(() => setIsAutoRedirecting(false));
+  }, [isPassportSSOEnabled, isAutoRedirecting, returnTo]);
 
   return (
     <div className="w-screen max-w-lg px-4">

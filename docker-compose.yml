@@ -87,6 +87,8 @@ services:
       - ${PORT:-3999}:${PORT:-3999}
     volumes:
       - documenso_uploads:/app/apps/remix/storage
+      - /opt/do/certs/ca-certificate.crt:/certs/ca-certificate.crt:ro
+      - /opt/do/certs/documenso-crt.p12:/certs/documenso-crt.p12:ro
       # Provide a cert.p12 if using local signing; replace the path below or set NEXT_PRIVATE_SIGNING_LOCAL_FILE_CONTENTS instead
       # - ./certs/cert.p12:/opt/documenso/cert.p12:ro
 

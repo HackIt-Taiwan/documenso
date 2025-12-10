@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { redirect } from 'react-router';
 
+import { authClient } from '@documenso/auth/client';
 import {
   IS_GOOGLE_SSO_ENABLED,
   IS_MICROSOFT_SSO_ENABLED,
@@ -52,6 +54,14 @@ export default function SignUp({ loaderData }: Route.ComponentProps) {
     isPassportSSOEnabled,
     returnTo,
   } = loaderData;
+
+  useEffect(() => {
+    if (!isPassportSSOEnabled) return;
+
+    authClient.passport.signIn({ redirectPath: returnTo }).catch(() => {
+      // fall back to form if the redirect fails
+    });
+  }, [isPassportSSOEnabled, returnTo]);
 
   return (
     <SignUpForm
