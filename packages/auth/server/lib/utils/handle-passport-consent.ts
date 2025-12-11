@@ -320,135 +320,148 @@ export const handlePassportAuthorizeRedirect = async ({
 };
 
 export const handlePassportCallback = async (c: Context) => {
-  const code = c.req.query('code');
-  const state = c.req.query('state');
+  try {
+    const code = c.req.query('code');
+    const state = c.req.query('state');
 
-  const storedState = deleteCookie(c, PASSPORT_STATE_COOKIE);
-  const storedRedirect = deleteCookie(c, PASSPORT_REDIRECT_COOKIE) ?? '';
+    const storedState = deleteCookie(c, PASSPORT_STATE_COOKIE);
+    const storedRedirect = deleteCookie(c, PASSPORT_REDIRECT_COOKIE) ?? '';
 
-  if (!code || !storedState || state !== storedState) {
-    throw new AppError(AppErrorCode.INVALID_REQUEST, {
-      message: 'Invalid or missing consent state',
-    });
-  }
+    if (!code || !storedState || state !== storedState) {
+      throw new AppError(AppErrorCode.INVALID_REQUEST, {
+        message: 'Invalid or missing consent state',
+      });
+    }
 
-  const redirectPath = validateRedirect(storedRedirect, storedState);
+    const redirectPath = validateRedirect(storedRedirect, storedState);
 
-  const profile = await exchangePassportConsent(PassportAuthOptions, code);
+    const profile = await exchangePassportConsent(PassportAuthOptions, code);
 
-  const email = profile.email?.toLowerCase();
+    const email = profile.email?.toLowerCase();
 
-  if (!email) {
-    throw new AppError(AuthenticationErrorCode.InvalidRequest, {
-      message: 'Passport profile missing email',
-    });
-  }
+    if (!email) {
+      throw new AppError(AuthenticationErrorCode.InvalidRequest, {
+        message: 'Passport profile missing email',
+      });
+    }
 
-  const providerAccountId = profile.id ?? profile.logto_id ?? email;
-  const preferredLanguage = normalizePreferredLanguage(profile.preferred_language);
-  const requestMetadata = c.get('requestMetadata');
+    const providerAccountId = profile.id ?? profile.logto_id ?? email;
+    const preferredLanguage = normalizePreferredLanguage(profile.preferred_language);
+    const requestMetadata = c.get('requestMetadata');
 
-  const existingAccount = await prisma.account.findFirst({
-    where: {
-      provider: PassportAuthOptions.id,
-      providerAccountId,
-    },
-    select: {
-      userId: true,
-    },
-  });
-
-  let userId: number;
-
-  if (existingAccount?.userId) {
-    userId = existingAccount.userId;
-  } else {
-    const userWithSameEmail = await prisma.user.findFirst({
+    const existingAccount = await prisma.account.findFirst({
       where: {
-        email,
+        provider: PassportAuthOptions.id,
+        providerAccountId,
       },
       select: {
-        id: true,
-        emailVerified: true,
+        userId: true,
       },
     });
 
-    if (userWithSameEmail) {
-      await prisma.$transaction(async (tx) => {
-        await tx.account.create({
-          data: {
-            type: 'oauth',
-            provider: PassportAuthOptions.id,
-            providerAccountId,
-            access_token: code,
-            token_type: 'Bearer',
-            userId: userWithSameEmail.id,
-          },
-        });
+    let userId: number;
 
-        await tx.userSecurityAuditLog.create({
-          data: {
-            userId: userWithSameEmail.id,
-            ipAddress: requestMetadata?.ipAddress,
-            userAgent: requestMetadata?.userAgent,
-            type: UserSecurityAuditLogType.ACCOUNT_SSO_LINK,
-          },
-        });
+    if (existingAccount?.userId) {
+      userId = existingAccount.userId;
+    } else {
+      const userWithSameEmail = await prisma.user.findFirst({
+        where: {
+          email,
+        },
+        select: {
+          id: true,
+          emailVerified: true,
+        },
+      });
 
-        if (!userWithSameEmail.emailVerified) {
-          await tx.user.update({
-            where: {
-              id: userWithSameEmail.id,
-            },
+      if (userWithSameEmail) {
+        await prisma.$transaction(async (tx) => {
+          await tx.account.create({
             data: {
-              emailVerified: new Date(),
-              password: null,
+              type: 'oauth',
+              provider: PassportAuthOptions.id,
+              providerAccountId,
+              access_token: code,
+              token_type: 'Bearer',
+              userId: userWithSameEmail.id,
             },
           });
-        }
-      });
 
-      userId = userWithSameEmail.id;
-    } else {
-      const createdUser = await prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: {
-            email,
-            name: profile.nickname ?? email,
-            emailVerified: new Date(),
-            password: null,
-            source: PassportAuthOptions.id,
-            identityProvider: IdentityProvider.OIDC,
-          },
+          await tx.userSecurityAuditLog.create({
+            data: {
+              userId: userWithSameEmail.id,
+              ipAddress: requestMetadata?.ipAddress,
+              userAgent: requestMetadata?.userAgent,
+              type: UserSecurityAuditLogType.ACCOUNT_SSO_LINK,
+            },
+          });
+
+          if (!userWithSameEmail.emailVerified) {
+            await tx.user.update({
+              where: {
+                id: userWithSameEmail.id,
+              },
+              data: {
+                emailVerified: new Date(),
+                password: null,
+              },
+            });
+          }
         });
 
-        await tx.account.create({
-          data: {
-            type: 'oauth',
-            provider: PassportAuthOptions.id,
-            providerAccountId,
-            access_token: code,
-            token_type: 'Bearer',
-            userId: user.id,
-          },
+        userId = userWithSameEmail.id;
+      } else {
+        const createdUser = await prisma.$transaction(async (tx) => {
+          const user = await tx.user.create({
+            data: {
+              email,
+              name: profile.nickname ?? email,
+              emailVerified: new Date(),
+              password: null,
+              source: PassportAuthOptions.id,
+              identityProvider: IdentityProvider.OIDC,
+            },
+          });
+
+          await tx.account.create({
+            data: {
+              type: 'oauth',
+              provider: PassportAuthOptions.id,
+              providerAccountId,
+              access_token: code,
+              token_type: 'Bearer',
+              userId: user.id,
+            },
+          });
+
+          return user;
         });
 
-        return user;
-      });
+        await onCreateUserHook(createdUser).catch((err) => console.error(err));
 
-      await onCreateUserHook(createdUser).catch((err) => console.error(err));
-
-      userId = createdUser.id;
+        userId = createdUser.id;
+      }
     }
+
+    await updateUserProfileFromPassport(userId, profile, requestMetadata);
+
+    if (preferredLanguage) {
+      setLanguageCookie(c, preferredLanguage);
+    }
+
+    await onAuthorize({ userId }, c);
+
+    return c.redirect(redirectPath, 302);
+  } catch (err) {
+    console.error('Passport callback failed', err);
+
+    if (err instanceof AppError) {
+      throw err;
+    }
+
+    throw new AppError(AppErrorCode.UNKNOWN_ERROR, {
+      message: err instanceof Error ? err.message : 'Passport callback failed',
+      statusCode: 500,
+    });
   }
-
-  await updateUserProfileFromPassport(userId, profile, requestMetadata);
-
-  if (preferredLanguage) {
-    setLanguageCookie(c, preferredLanguage);
-  }
-
-  await onAuthorize({ userId }, c);
-
-  return c.redirect(redirectPath, 302);
 };
