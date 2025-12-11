@@ -1,12 +1,12 @@
 import { findDocumentAuditLogs } from '@documenso/lib/server-only/document/find-document-audit-logs';
 
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import {
   ZFindDocumentAuditLogsRequestSchema,
   ZFindDocumentAuditLogsResponseSchema,
 } from './find-document-audit-logs.types';
 
-export const findDocumentAuditLogsRoute = authenticatedProcedure
+export const findDocumentAuditLogsRoute = documentProcedure
   .input(ZFindDocumentAuditLogsRequestSchema)
   .output(ZFindDocumentAuditLogsResponseSchema)
   .query(async ({ input, ctx }) => {

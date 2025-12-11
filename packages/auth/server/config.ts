@@ -71,5 +71,5 @@ export const PassportAuthOptions: PassportConsentOptions = {
   apiBaseUrl: normalizePassportApiBaseUrl(),
   apiToken: env('PASSPORT_API_TOKEN') ?? '',
   redirectUrl: `${NEXT_PUBLIC_WEBAPP_URL()}/api/auth/callback/passport`,
-  requestedFields: ['email', 'nickname', 'avatar_url', 'preferred_language'],
+  requestedFields: ['email', 'nickname', 'avatar_url', 'preferred_language', 'role'],
 };

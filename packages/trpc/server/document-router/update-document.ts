@@ -1,7 +1,7 @@
 import { updateEnvelope } from '@documenso/lib/server-only/envelope/update-envelope';
 import { mapSecondaryIdToDocumentId } from '@documenso/lib/utils/envelope';
 
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import {
   ZUpdateDocumentRequestSchema,
   ZUpdateDocumentResponseSchema,
@@ -11,7 +11,7 @@ import { updateDocumentMeta as updateDocumentTrpcMeta } from './update-document.
 /**
  * Public route.
  */
-export const updateDocumentRoute = authenticatedProcedure
+export const updateDocumentRoute = documentProcedure
   .meta(updateDocumentTrpcMeta)
   .input(ZUpdateDocumentRequestSchema)
   .output(ZUpdateDocumentResponseSchema)

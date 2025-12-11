@@ -3,13 +3,13 @@ import { EnvelopeType } from '@prisma/client';
 import { findAttachmentsByEnvelopeId } from '@documenso/lib/server-only/envelope-attachment/find-attachments-by-envelope-id';
 import { getEnvelopeById } from '@documenso/lib/server-only/envelope/get-envelope-by-id';
 
-import { authenticatedProcedure } from '../../trpc';
+import { documentProcedure } from '../procedure';
 import {
   ZFindAttachmentsRequestSchema,
   ZFindAttachmentsResponseSchema,
 } from './find-attachments.types';
 
-export const findAttachmentsRoute = authenticatedProcedure
+export const findAttachmentsRoute = documentProcedure
   .meta({
     openapi: {
       method: 'GET',

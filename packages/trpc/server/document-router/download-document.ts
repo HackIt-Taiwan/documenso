@@ -1,11 +1,11 @@
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import {
   ZDownloadDocumentRequestSchema,
   ZDownloadDocumentResponseSchema,
   downloadDocumentMeta,
 } from './download-document.types';
 
-export const downloadDocumentRoute = authenticatedProcedure
+export const downloadDocumentRoute = documentProcedure
   .meta(downloadDocumentMeta)
   .input(ZDownloadDocumentRequestSchema)
   .output(ZDownloadDocumentResponseSchema)

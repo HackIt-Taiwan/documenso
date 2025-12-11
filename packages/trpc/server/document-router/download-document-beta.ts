@@ -6,14 +6,14 @@ import { getEnvelopeById } from '@documenso/lib/server-only/envelope/get-envelop
 import { getPresignGetUrl } from '@documenso/lib/universal/upload/server-actions';
 import { isDocumentCompleted } from '@documenso/lib/utils/document';
 
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import {
   ZDownloadDocumentRequestSchema,
   ZDownloadDocumentResponseSchema,
   downloadDocumentMeta,
 } from './download-document-beta.types';
 
-export const downloadDocumentBetaRoute = authenticatedProcedure
+export const downloadDocumentBetaRoute = documentProcedure
   .meta(downloadDocumentMeta)
   .input(ZDownloadDocumentRequestSchema)
   .output(ZDownloadDocumentResponseSchema)

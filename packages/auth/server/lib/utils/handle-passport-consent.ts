@@ -24,13 +24,14 @@ type PassportProfile = {
   logto_id?: string;
   email: string;
   nickname?: string | null;
+  role?: string | null;
   avatar_url?: string | null;
   preferred_language?: string | null;
 };
 
 const PASSPORT_STATE_COOKIE = 'passport_oauth_state';
 const PASSPORT_REDIRECT_COOKIE = 'passport_oauth_redirect_path';
-const PASSPORT_ALLOWED_FIELDS = ['email', 'nickname', 'avatar_url', 'preferred_language'];
+const PASSPORT_ALLOWED_FIELDS = ['email', 'nickname', 'avatar_url', 'preferred_language', 'role'];
 const PASSPORT_COOKIE_MAX_AGE_SECONDS = 60 * 10; // 10 minutes
 
 const passportCookieOptions = {
@@ -250,10 +251,14 @@ const updateUserProfileFromPassport = async (
   profile: PassportProfile,
   metadata?: RequestMetadata,
 ) => {
-  const updates: { name?: string; lastSignedIn?: Date } = {};
+  const updates: { name?: string; lastSignedIn?: Date; passportRole?: string | null } = {};
 
   if (profile.nickname) {
     updates.name = profile.nickname;
+  }
+
+  if (profile.role) {
+    updates.passportRole = profile.role.toLowerCase();
   }
 
   updates.lastSignedIn = new Date();

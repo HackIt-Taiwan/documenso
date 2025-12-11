@@ -1,13 +1,13 @@
 import { deleteAttachment } from '@documenso/lib/server-only/envelope-attachment/delete-attachment';
 
 import { ZGenericSuccessResponse } from '../../schema';
-import { authenticatedProcedure } from '../../trpc';
+import { documentProcedure } from '../procedure';
 import {
   ZDeleteAttachmentRequestSchema,
   ZDeleteAttachmentResponseSchema,
 } from './delete-attachment.types';
 
-export const deleteAttachmentRoute = authenticatedProcedure
+export const deleteAttachmentRoute = documentProcedure
   .meta({
     openapi: {
       method: 'POST',

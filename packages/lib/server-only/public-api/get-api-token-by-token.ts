@@ -31,6 +31,9 @@ export const getApiTokenByToken = async ({ token }: { token: string }) => {
           id: true,
           name: true,
           email: true,
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error Schema includes passportRole column
+          passportRole: true,
           disabled: true,
         },
       },

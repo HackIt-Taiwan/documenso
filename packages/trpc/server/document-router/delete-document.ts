@@ -1,14 +1,14 @@
 import { deleteDocument } from '@documenso/lib/server-only/document/delete-document';
 
 import { ZGenericSuccessResponse } from '../schema';
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import {
   ZDeleteDocumentRequestSchema,
   ZDeleteDocumentResponseSchema,
   deleteDocumentMeta,
 } from './delete-document.types';
 
-export const deleteDocumentRoute = authenticatedProcedure
+export const deleteDocumentRoute = documentProcedure
   .meta(deleteDocumentMeta)
   .input(ZDeleteDocumentRequestSchema)
   .output(ZDeleteDocumentResponseSchema)

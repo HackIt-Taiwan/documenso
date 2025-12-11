@@ -8,13 +8,13 @@ import { getEnvelopeById } from '@documenso/lib/server-only/envelope/get-envelop
 import { isDocumentCompleted } from '@documenso/lib/utils/document';
 import { mapSecondaryIdToDocumentId } from '@documenso/lib/utils/envelope';
 
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import {
   ZDownloadDocumentCertificateRequestSchema,
   ZDownloadDocumentCertificateResponseSchema,
 } from './download-document-certificate.types';
 
-export const downloadDocumentCertificateRoute = authenticatedProcedure
+export const downloadDocumentCertificateRoute = documentProcedure
   .input(ZDownloadDocumentCertificateRequestSchema)
   .output(ZDownloadDocumentCertificateResponseSchema)
   .mutation(async ({ input, ctx }) => {

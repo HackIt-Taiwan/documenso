@@ -6,10 +6,10 @@ import { mapEnvelopesToDocumentMany } from '@documenso/lib/utils/document';
 import { maskRecipientTokensForDocument } from '@documenso/lib/utils/mask-recipient-tokens-for-document';
 import { prisma } from '@documenso/prisma';
 
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import { ZFindInboxRequestSchema, ZFindInboxResponseSchema } from './find-inbox.types';
 
-export const findInboxRoute = authenticatedProcedure
+export const findInboxRoute = documentProcedure
   .input(ZFindInboxRequestSchema)
   .output(ZFindInboxResponseSchema)
   .query(async ({ input, ctx }) => {

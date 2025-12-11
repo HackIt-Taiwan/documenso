@@ -1,14 +1,14 @@
 import { findDocuments } from '@documenso/lib/server-only/document/find-documents';
 import { mapEnvelopesToDocumentMany } from '@documenso/lib/utils/document';
 
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import {
   ZFindDocumentsMeta,
   ZFindDocumentsRequestSchema,
   ZFindDocumentsResponseSchema,
 } from './find-documents.types';
 
-export const findDocumentsRoute = authenticatedProcedure
+export const findDocumentsRoute = documentProcedure
   .meta(ZFindDocumentsMeta)
   .input(ZFindDocumentsRequestSchema)
   .output(ZFindDocumentsResponseSchema)

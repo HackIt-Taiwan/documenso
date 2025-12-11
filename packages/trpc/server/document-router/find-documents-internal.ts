@@ -4,13 +4,13 @@ import { getStats } from '@documenso/lib/server-only/document/get-stats';
 import { getTeamById } from '@documenso/lib/server-only/team/get-team';
 import { mapEnvelopesToDocumentMany } from '@documenso/lib/utils/document';
 
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import {
   ZFindDocumentsInternalRequestSchema,
   ZFindDocumentsInternalResponseSchema,
 } from './find-documents-internal.types';
 
-export const findDocumentsInternalRoute = authenticatedProcedure
+export const findDocumentsInternalRoute = documentProcedure
   .input(ZFindDocumentsInternalRequestSchema)
   .output(ZFindDocumentsInternalResponseSchema)
   .query(async ({ input, ctx }) => {

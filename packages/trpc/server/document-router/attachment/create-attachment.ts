@@ -3,13 +3,13 @@ import { EnvelopeType } from '@prisma/client';
 import { createAttachment } from '@documenso/lib/server-only/envelope-attachment/create-attachment';
 import { getEnvelopeById } from '@documenso/lib/server-only/envelope/get-envelope-by-id';
 
-import { authenticatedProcedure } from '../../trpc';
+import { documentProcedure } from '../procedure';
 import {
   ZCreateAttachmentRequestSchema,
   ZCreateAttachmentResponseSchema,
 } from './create-attachment.types';
 
-export const createAttachmentRoute = authenticatedProcedure
+export const createAttachmentRoute = documentProcedure
   .meta({
     openapi: {
       method: 'POST',

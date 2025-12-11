@@ -7,13 +7,13 @@ import { encryptSecondaryData } from '@documenso/lib/server-only/crypto/encrypt'
 import { getEnvelopeById } from '@documenso/lib/server-only/envelope/get-envelope-by-id';
 import { mapSecondaryIdToDocumentId } from '@documenso/lib/utils/envelope';
 
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import {
   ZDownloadDocumentAuditLogsRequestSchema,
   ZDownloadDocumentAuditLogsResponseSchema,
 } from './download-document-audit-logs.types';
 
-export const downloadDocumentAuditLogsRoute = authenticatedProcedure
+export const downloadDocumentAuditLogsRoute = documentProcedure
   .input(ZDownloadDocumentAuditLogsRequestSchema)
   .output(ZDownloadDocumentAuditLogsResponseSchema)
   .mutation(async ({ input, ctx }) => {

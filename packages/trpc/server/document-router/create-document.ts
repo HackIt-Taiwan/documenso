@@ -7,14 +7,14 @@ import { insertFormValuesInPdf } from '@documenso/lib/server-only/pdf/insert-for
 import { putNormalizedPdfFileServerSide } from '@documenso/lib/universal/upload/put-file.server';
 import { mapSecondaryIdToDocumentId } from '@documenso/lib/utils/envelope';
 
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import {
   ZCreateDocumentRequestSchema,
   ZCreateDocumentResponseSchema,
   createDocumentMeta,
 } from './create-document.types';
 
-export const createDocumentRoute = authenticatedProcedure
+export const createDocumentRoute = documentProcedure
   .meta(createDocumentMeta)
   .input(ZCreateDocumentRequestSchema)
   .output(ZCreateDocumentResponseSchema)

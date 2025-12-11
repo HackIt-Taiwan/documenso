@@ -21,6 +21,7 @@ export type SessionUser = Pick<
   | 'emailVerified'
   | 'avatarImageId'
   | 'twoFactorEnabled'
+  | 'passportRole'
   | 'roles'
   | 'signature'
 >;
@@ -95,6 +96,10 @@ export const validateSessionToken = async (token: string): Promise<SessionValida
           email: true,
           emailVerified: true,
           avatarImageId: true,
+          // passportRole is populated from Passport SSO when available
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error Prisma schema includes this column
+          passportRole: true,
           twoFactorEnabled: true,
           roles: true,
           signature: true,

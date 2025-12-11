@@ -1,13 +1,13 @@
 import { updateAttachment } from '@documenso/lib/server-only/envelope-attachment/update-attachment';
 
 import { ZGenericSuccessResponse } from '../../schema';
-import { authenticatedProcedure } from '../../trpc';
+import { documentProcedure } from '../procedure';
 import {
   ZUpdateAttachmentRequestSchema,
   ZUpdateAttachmentResponseSchema,
 } from './update-attachment.types';
 
-export const updateAttachmentRoute = authenticatedProcedure
+export const updateAttachmentRoute = documentProcedure
   .meta({
     openapi: {
       method: 'POST',

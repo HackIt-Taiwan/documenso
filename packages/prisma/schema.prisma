@@ -44,6 +44,7 @@ model User {
   password         String? // Todo: (RR7) Remove after RR7 migration.
   source           String?
   signature        String?
+  passportRole     String? // Role returned from Passport (e.g. member, partner, core)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @default(now()) @updatedAt
   lastSignedIn     DateTime         @default(now())

@@ -8,7 +8,7 @@ import { getPresignPostUrl } from '@documenso/lib/universal/upload/server-action
 import { mapSecondaryIdToDocumentId } from '@documenso/lib/utils/envelope';
 import { prisma } from '@documenso/prisma';
 
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import {
   ZCreateDocumentTemporaryRequestSchema,
   ZCreateDocumentTemporaryResponseSchema,
@@ -21,7 +21,7 @@ import {
  * @public
  * @deprecated
  */
-export const createDocumentTemporaryRoute = authenticatedProcedure
+export const createDocumentTemporaryRoute = documentProcedure
   .meta(createDocumentTemporaryMeta)
   .input(ZCreateDocumentTemporaryRequestSchema)
   .output(ZCreateDocumentTemporaryResponseSchema)

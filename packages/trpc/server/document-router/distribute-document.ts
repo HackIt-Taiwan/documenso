@@ -2,14 +2,14 @@ import { updateDocumentMeta } from '@documenso/lib/server-only/document-meta/ups
 import { sendDocument } from '@documenso/lib/server-only/document/send-document';
 import { mapEnvelopeToDocumentLite } from '@documenso/lib/utils/document';
 
-import { authenticatedProcedure } from '../trpc';
+import { documentProcedure } from './procedure';
 import {
   ZDistributeDocumentRequestSchema,
   ZDistributeDocumentResponseSchema,
   distributeDocumentMeta,
 } from './distribute-document.types';
 
-export const distributeDocumentRoute = authenticatedProcedure
+export const distributeDocumentRoute = documentProcedure
   .meta(distributeDocumentMeta)
   .input(ZDistributeDocumentRequestSchema)
   .output(ZDistributeDocumentResponseSchema)
