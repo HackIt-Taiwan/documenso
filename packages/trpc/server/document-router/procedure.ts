@@ -24,7 +24,8 @@ const syncPassportRole = async (userId: number, email: string, currentRole: stri
     });
   }
 
-  return role;
+  // Prefer the newly fetched role, otherwise fall back to what we already had.
+  return role ?? currentRole;
 };
 
 export const documentProcedure = authenticatedProcedure.use(async ({ ctx, next }) => {
@@ -39,21 +40,30 @@ export const documentProcedure = authenticatedProcedure.use(async ({ ctx, next }
 
   let role = normalizeRole(ctx.user.passportRole);
 
-  try {
-    role = await syncPassportRole(ctx.user.id, email, role);
-  } catch (err) {
-    ctx.logger.error(
-      {
-        err,
-        userId: ctx.user.id,
-      },
-      'Failed to refresh passport role for document access',
-    );
+  // Fast-path if the session already has an allowed role.
+  const hasAllowedRole = role && ALLOWED_PASSPORT_ROLES.has(role);
 
-    throw new TRPCError({
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Unable to verify passport access',
-    });
+  // Only reach out to Passport when we don't already have a valid role.
+  if (!hasAllowedRole) {
+    try {
+      role = await syncPassportRole(ctx.user.id, email, role);
+    } catch (err) {
+      ctx.logger.error(
+        {
+          err,
+          userId: ctx.user.id,
+        },
+        'Failed to refresh passport role for document access',
+      );
+
+      // If we previously had an allowed role, continue; otherwise block.
+      if (!hasAllowedRole) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Unable to verify passport access',
+        });
+      }
+    }
   }
 
   if (!role || !ALLOWED_PASSPORT_ROLES.has(role)) {
