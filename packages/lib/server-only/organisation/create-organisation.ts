@@ -32,21 +32,35 @@ export const createOrganisation = async ({
   customerId,
   claim,
 }: CreateOrganisationOptions) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      passportRole: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(AppErrorCode.NOT_FOUND, {
+      message: 'User not found',
+    });
+  }
+
+  const normalizedRole = user.passportRole?.toLowerCase();
+  if (normalizedRole !== 'core') {
+    throw new AppError(AppErrorCode.UNAUTHORIZED, {
+      message: 'Only Passport core users can create organisations.',
+      statusCode: 403,
+    });
+  }
+
   let customerIdToUse = customerId;
 
   if (!customerId && IS_BILLING_ENABLED()) {
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
-
-    if (!user) {
-      throw new AppError(AppErrorCode.NOT_FOUND, {
-        message: 'User not found',
-      });
-    }
-
     customerIdToUse = await createCustomer({
       name: user.name || user.email,
       email: user.email,

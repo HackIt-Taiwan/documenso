@@ -5,7 +5,6 @@ import { prisma } from '@documenso/prisma';
 
 import { SALT_ROUNDS } from '../../constants/auth';
 import { AppError, AppErrorCode } from '../../errors/app-error';
-import { createPersonalOrganisation } from '../organisation/create-organisation';
 
 export interface CreateUserOptions {
   name: string;
@@ -66,7 +65,5 @@ export const createUser = async ({ name, email, password, signature }: CreateUse
  * @returns User
  */
 export const onCreateUserHook = async (user: User) => {
-  await createPersonalOrganisation({ userId: user.id });
-
   return user;
 };
