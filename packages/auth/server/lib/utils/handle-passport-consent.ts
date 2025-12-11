@@ -45,7 +45,8 @@ const languageCookieOptions = {
   path: '/',
   sameSite: 'lax' as const,
   secure: env('NODE_ENV') === 'production',
-  maxAge: 60 * 60 * 24 * 365 * 2,
+  // Keep under browser limit of 400 days (34560000s)
+  maxAge: 60 * 60 * 24 * 365,
 };
 
 const ensurePassportConfig = (config: PassportConsentConfig) => {
