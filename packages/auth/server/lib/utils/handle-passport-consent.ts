@@ -29,6 +29,7 @@ type PassportProfile = {
   preferred_language?: string | null;
 };
 
+const ALLOWED_PASSPORT_ROLES = new Set(['partner', 'core']);
 const PASSPORT_STATE_COOKIE = 'passport_oauth_state';
 const PASSPORT_REDIRECT_COOKIE = 'passport_oauth_redirect_path';
 const PASSPORT_ALLOWED_FIELDS = ['email', 'nickname', 'avatar_url', 'preferred_language', 'role'];
@@ -344,6 +345,7 @@ export const handlePassportCallback = async (c: Context) => {
     const profile = await exchangePassportConsent(PassportAuthOptions, code);
 
     const email = profile.email?.toLowerCase();
+    const normalizedRole = profile.role?.toLowerCase();
 
     if (!email) {
       throw new AppError(AuthenticationErrorCode.InvalidRequest, {
@@ -351,9 +353,21 @@ export const handlePassportCallback = async (c: Context) => {
       });
     }
 
+    if (!normalizedRole || !ALLOWED_PASSPORT_ROLES.has(normalizedRole)) {
+      throw new AppError(AppErrorCode.UNAUTHORIZED, {
+        message: `Passport role not permitted: ${profile.role ?? 'unknown'}`,
+        userMessage: 'Only Passport partner or core users can sign in.',
+        statusCode: 403,
+      });
+    }
+
     const providerAccountId = profile.id ?? profile.logto_id ?? email;
     const preferredLanguage = normalizePreferredLanguage(profile.preferred_language);
     const requestMetadata = c.get('requestMetadata');
+    const profileWithNormalizedRole: PassportProfile = {
+      ...profile,
+      role: normalizedRole,
+    };
 
     const existingAccount = await prisma.account.findFirst({
       where: {
@@ -449,7 +463,7 @@ export const handlePassportCallback = async (c: Context) => {
       }
     }
 
-    await updateUserProfileFromPassport(userId, profile, requestMetadata);
+    await updateUserProfileFromPassport(userId, profileWithNormalizedRole, requestMetadata);
 
     if (preferredLanguage) {
       setLanguageCookie(c, preferredLanguage);
