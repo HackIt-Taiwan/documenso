@@ -136,9 +136,10 @@ export const setFieldsForDocument = async ({
     };
   });
 
-  const persistedFields = await prisma.$transaction(async (tx) => {
-    return await Promise.all(
-      linkedFields.map(async (field) => {
+  const persistedFields = await prisma.$transaction(
+    async (tx) => {
+      return await Promise.all(
+        linkedFields.map(async (field) => {
         const fieldSignerEmail = field._recipient.email.toLowerCase();
 
         const parsedFieldMeta = field.fieldMeta
@@ -310,36 +311,45 @@ export const setFieldsForDocument = async ({
           ...upsertedField,
           formId: field.formId,
         };
-      }),
-    );
-  });
+        }),
+      );
+    },
+    {
+      timeout: 30_000,
+    },
+  );
 
   if (removedFields.length > 0) {
-    await prisma.$transaction(async (tx) => {
-      await tx.field.deleteMany({
-        where: {
-          id: {
-            in: removedFields.map((field) => field.id),
-          },
-        },
-      });
-
-      await tx.documentAuditLog.createMany({
-        data: removedFields.map((field) =>
-          createDocumentAuditLogData({
-            type: DOCUMENT_AUDIT_LOG_TYPE.FIELD_DELETED,
-            envelopeId: envelope.id,
-            metadata: requestMetadata,
-            data: {
-              fieldId: field.secondaryId,
-              fieldRecipientEmail: field.recipient?.email ?? '',
-              fieldRecipientId: field.recipientId ?? -1,
-              fieldType: field.type,
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.field.deleteMany({
+          where: {
+            id: {
+              in: removedFields.map((field) => field.id),
             },
-          }),
-        ),
-      });
-    });
+          },
+        });
+
+        await tx.documentAuditLog.createMany({
+          data: removedFields.map((field) =>
+            createDocumentAuditLogData({
+              type: DOCUMENT_AUDIT_LOG_TYPE.FIELD_DELETED,
+              envelopeId: envelope.id,
+              metadata: requestMetadata,
+              data: {
+                fieldId: field.secondaryId,
+                fieldRecipientEmail: field.recipient?.email ?? '',
+                fieldRecipientId: field.recipientId ?? -1,
+                fieldType: field.type,
+              },
+            }),
+          ),
+        });
+      },
+      {
+        timeout: 30_000,
+      },
+    );
   }
 
   // Filter out fields that have been removed or have been updated.

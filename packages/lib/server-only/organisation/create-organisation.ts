@@ -162,7 +162,7 @@ export const createOrganisation = async ({
       return organisation;
     },
     {
-      timeout: 15000,
+      timeout: 30_000,
     },
   );
 };

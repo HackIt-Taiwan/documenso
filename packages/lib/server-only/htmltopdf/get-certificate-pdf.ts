@@ -62,7 +62,7 @@ export const getCertificatePdf = async ({ documentId, language }: GetCertificate
     `${USE_INTERNAL_URL_BROWSERLESS() ? NEXT_PUBLIC_WEBAPP_URL() : NEXT_PRIVATE_INTERNAL_WEBAPP_URL()}/__htmltopdf/certificate?d=${encryptedId}`,
     {
       waitUntil: 'networkidle',
-      timeout: 10_000,
+      timeout: 30_000,
     },
   );
 
@@ -71,12 +71,12 @@ export const getCertificatePdf = async ({ documentId, language }: GetCertificate
   // !: cause the page to render blank until a reload is performed.
   await page.reload({
     waitUntil: 'networkidle',
-    timeout: 10_000,
+    timeout: 30_000,
   });
 
   await page.waitForSelector('h1', {
     state: 'visible',
-    timeout: 10_000,
+    timeout: 30_000,
   });
 
   const result = await page.pdf({

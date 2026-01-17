@@ -62,7 +62,7 @@ export const getAuditLogsPdf = async ({ documentId, language }: GetAuditLogsPdfO
     `${USE_INTERNAL_URL_BROWSERLESS() ? NEXT_PUBLIC_WEBAPP_URL() : NEXT_PRIVATE_INTERNAL_WEBAPP_URL()}/__htmltopdf/audit-log?d=${encryptedId}`,
     {
       waitUntil: 'networkidle',
-      timeout: 10_000,
+      timeout: 30_000,
     },
   );
 
@@ -71,12 +71,12 @@ export const getAuditLogsPdf = async ({ documentId, language }: GetAuditLogsPdfO
   // !: cause the page to render blank until a reload is performed.
   await page.reload({
     waitUntil: 'networkidle',
-    timeout: 10_000,
+    timeout: 30_000,
   });
 
   await page.waitForSelector('h1', {
     state: 'visible',
-    timeout: 10_000,
+    timeout: 30_000,
   });
 
   const result = await page.pdf({

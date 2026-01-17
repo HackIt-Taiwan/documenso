@@ -12,6 +12,9 @@ export const prisma = remember(
   () =>
     new PrismaClient({
       datasourceUrl: getDatabaseUrl(),
+      transactionOptions: {
+        timeout: 30_000,
+      },
     }),
 );
 
@@ -34,6 +37,9 @@ export const kyselyPrisma = remember('kyselyPrisma', () =>
 export const prismaWithLogging = remember('prismaWithLogging', () => {
   const client = new PrismaClient({
     datasourceUrl: getDatabaseUrl(),
+    transactionOptions: {
+      timeout: 30_000,
+    },
     log: [
       {
         emit: 'event',

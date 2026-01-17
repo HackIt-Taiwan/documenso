@@ -184,7 +184,7 @@ export const createTeam = async ({
         );
       },
       {
-        timeout: 7500,
+        timeout: 30_000,
       },
     )
     .catch((err) => {
