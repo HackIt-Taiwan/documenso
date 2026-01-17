@@ -56,6 +56,6 @@ export const callbackRoute = new Hono<HonoAuthContext>()
   )
 
   /**
-   * Passport consent callback verification.
+   * Passport OIDC callback verification.
    */
   .get('/passport', handlePassportCallback);

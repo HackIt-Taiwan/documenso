@@ -144,7 +144,7 @@ export const handleOAuthCallbackUrl = async (options: HandleOAuthCallbackUrlOpti
 export const validateOauth = async (options: HandleOAuthCallbackUrlOptions) => {
   const { c, clientOptions } = options;
 
-  if (!clientOptions.clientId || !clientOptions.clientSecret) {
+  if (!clientOptions.clientId || !clientOptions.wellKnownUrl) {
     throw new AppError(AppErrorCode.NOT_SETUP);
   }
 
@@ -154,7 +154,7 @@ export const validateOauth = async (options: HandleOAuthCallbackUrlOptions) => {
 
   const oAuthClient = new OAuth2Client(
     clientOptions.clientId,
-    clientOptions.clientSecret,
+    clientOptions.clientSecret ?? '',
     clientOptions.redirectUrl,
   );
 
@@ -197,23 +197,20 @@ export const validateOauth = async (options: HandleOAuthCallbackUrlOptions) => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const claims = decodeIdToken(tokens.idToken()) as Record<string, unknown>;
 
-  const email = claims.email;
-  const name = claims.name;
-  const sub = claims.sub;
+  const email = typeof claims.email === 'string' ? claims.email : undefined;
+  const name =
+    (typeof claims.name === 'string' ? claims.name : undefined) ??
+    (typeof claims.preferred_username === 'string' ? claims.preferred_username : undefined) ??
+    (typeof claims.nickname === 'string' ? claims.nickname : undefined);
+  const sub = typeof claims.sub === 'string' ? claims.sub : undefined;
 
-  if (typeof email !== 'string') {
+  if (!email) {
     throw new AppError(AuthenticationErrorCode.InvalidRequest, {
       message: 'Missing email',
     });
   }
 
-  if (typeof name !== 'string') {
-    throw new AppError(AuthenticationErrorCode.InvalidRequest, {
-      message: 'Missing name',
-    });
-  }
-
-  if (typeof sub !== 'string') {
+  if (!sub) {
     throw new AppError(AuthenticationErrorCode.InvalidRequest, {
       message: 'Missing sub claim',
     });
@@ -227,11 +224,12 @@ export const validateOauth = async (options: HandleOAuthCallbackUrlOptions) => {
 
   return {
     email,
-    name,
+    name: name ?? email,
     sub,
     accessToken,
     accessTokenExpiresAt,
     idToken,
     redirectPath,
+    claims,
   };
 };

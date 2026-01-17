@@ -1,27 +1,22 @@
 import { IdentityProvider, UserSecurityAuditLogType } from '@prisma/client';
-import { generateState } from 'arctic';
 import type { Context } from 'hono';
-import { deleteCookie, setCookie } from 'hono/cookie';
+import { setCookie } from 'hono/cookie';
 
 import { APP_I18N_OPTIONS, type SupportedLanguageCodes } from '@documenso/lib/constants/i18n';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
+import { getPassportUserByEmail } from '@documenso/lib/server-only/passport/get-passport-user';
 import { setAvatarImage } from '@documenso/lib/server-only/profile/set-avatar-image';
 import { onCreateUserHook } from '@documenso/lib/server-only/user/create-user';
 import { env } from '@documenso/lib/utils/env';
-import { isValidReturnTo, normalizeReturnTo } from '@documenso/lib/utils/is-valid-return-to';
 import type { ApiRequestMetadata, RequestMetadata } from '@documenso/lib/universal/extract-request-metadata';
 import { prisma } from '@documenso/prisma';
 
 import { PassportAuthOptions } from '../../config';
-import { AuthenticationErrorCode } from '../errors/error-codes';
-import { sessionCookieOptions } from '../session/session-cookies';
 import { onAuthorize } from './authorizer';
-
-type PassportConsentConfig = typeof PassportAuthOptions;
+import { createOAuthAuthorizeUrl } from './handle-oauth-authorize-url';
+import { validateOauth } from './handle-oauth-callback-url';
 
 type PassportProfile = {
-  id?: string;
-  logto_id?: string;
   email: string;
   nickname?: string | null;
   role?: string | null;
@@ -30,17 +25,6 @@ type PassportProfile = {
 };
 
 const ALLOWED_PASSPORT_ROLES = new Set(['partner', 'core']);
-const PASSPORT_STATE_COOKIE = 'passport_oauth_state';
-const PASSPORT_REDIRECT_COOKIE = 'passport_oauth_redirect_path';
-const PASSPORT_ALLOWED_FIELDS = ['email', 'nickname', 'avatar_url', 'preferred_language', 'role'];
-const PASSPORT_COOKIE_MAX_AGE_SECONDS = 60 * 10; // 10 minutes
-
-const passportCookieOptions = {
-  ...sessionCookieOptions,
-  sameSite: 'lax' as const,
-  maxAge: PASSPORT_COOKIE_MAX_AGE_SECONDS,
-  expires: undefined,
-};
 
 const languageCookieOptions = {
   httpOnly: true,
@@ -51,114 +35,7 @@ const languageCookieOptions = {
   maxAge: 60 * 60 * 24 * 365,
 };
 
-const ensurePassportConfig = (config: PassportConsentConfig) => {
-  if (!config.apiBaseUrl || !config.apiToken || !config.clientId) {
-    throw new AppError(AppErrorCode.NOT_SETUP, {
-      message: 'Passport SSO is not configured',
-      statusCode: 400,
-    });
-  }
-};
-
-const requestPassportConsent = async (
-  config: PassportConsentConfig,
-  state: string,
-  restartUri?: string,
-) => {
-  ensurePassportConfig(config);
-
-  const consentUrl = `${config.apiBaseUrl}/services/consent/request`;
-
-  const response = await fetch(consentUrl, {
-    method: 'POST',
-    headers: {
-      'X-API-Token': config.apiToken,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      client_id: config.clientId,
-      redirect_uri: config.redirectUrl,
-      fields: config.requestedFields.filter((field) => PASSPORT_ALLOWED_FIELDS.includes(field)),
-      state,
-      restart_uri: restartUri,
-    }),
-  });
-
-  if (!response.ok) {
-    let errorBody: unknown;
-
-    try {
-      errorBody = await response.json();
-    } catch {
-      try {
-        errorBody = await response.text();
-      } catch {
-        errorBody = undefined;
-      }
-    }
-
-    throw new AppError(AppErrorCode.INVALID_REQUEST, {
-      message: `Passport consent request failed (${response.status})${errorBody ? `: ${JSON.stringify(errorBody)}` : ''}`,
-      statusCode: response.status,
-    });
-  }
-
-  const data = (await response.json().catch(() => ({}))) as {
-    request_id?: string;
-    consent_url?: string;
-    consentUrl?: string;
-  };
-
-  const redirectUrl = data.consent_url || data.consentUrl;
-
-  if (!data.request_id || !redirectUrl) {
-    throw new AppError(AppErrorCode.INVALID_REQUEST, {
-      message: 'Passport consent response missing request_id/consent_url',
-    });
-  }
-
-  return {
-    requestId: data.request_id,
-    consentUrl: redirectUrl,
-  };
-};
-
-const exchangePassportConsent = async (config: PassportConsentConfig, code: string) => {
-  ensurePassportConfig(config);
-
-  const tokenUrl = `${config.apiBaseUrl}/services/consent/token`;
-
-  const response = await fetch(tokenUrl, {
-    method: 'POST',
-    headers: {
-      'X-API-Token': config.apiToken,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      code,
-      client_id: config.clientId,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new AppError(AppErrorCode.INVALID_REQUEST, {
-      message: `Passport consent token exchange failed (${response.status})`,
-      statusCode: response.status,
-    });
-  }
-
-  const data = (await response.json().catch(() => ({}))) as { user?: PassportProfile };
-
-  if (!data.user) {
-    throw new AppError(AppErrorCode.INVALID_REQUEST, {
-      message: 'Passport consent token did not include a user payload',
-    });
-  }
-
-  return data.user;
-};
+const normalizeRole = (role?: string | null) => (role ? role.toLowerCase().trim() : null);
 
 const normalizePreferredLanguage = (
   language?: string | null,
@@ -177,15 +54,6 @@ const normalizePreferredLanguage = (
 
 const setLanguageCookie = (c: Context, language: SupportedLanguageCodes) => {
   setCookie(c, 'lang', language, languageCookieOptions);
-};
-
-const buildRestartUri = (redirectUrl: string) => {
-  try {
-    const url = new URL(redirectUrl);
-    return `${url.origin}/signin`;
-  } catch {
-    return undefined;
-  }
 };
 
 const buildAvatarAuditMetadata = (
@@ -252,7 +120,9 @@ const updateUserProfileFromPassport = async (
   profile: PassportProfile,
   metadata?: RequestMetadata,
 ) => {
-  const updates: { name?: string; lastSignedIn?: Date; passportRole?: string | null } = {};
+  const updates: { name?: string; lastSignedIn?: Date; passportRole?: string | null } = {
+    lastSignedIn: new Date(),
+  };
 
   if (profile.nickname) {
     updates.name = profile.nickname;
@@ -262,8 +132,6 @@ const updateUserProfileFromPassport = async (
     updates.passportRole = profile.role.toLowerCase();
   }
 
-  updates.lastSignedIn = new Date();
-
   await prisma.user.update({
     where: { id: userId },
     data: updates,
@@ -272,34 +140,45 @@ const updateUserProfileFromPassport = async (
   await setUserAvatarFromUrl(userId, profile.avatar_url, profile.email, profile.nickname, metadata);
 };
 
-const validateRedirect = (storedRedirect: string, storedState: string) => {
-  let [redirectState, redirectPath] = storedRedirect.split(' ');
-
-  if (redirectState !== storedState || !redirectPath) {
-    return '/';
-  }
-
-  if (!isValidReturnTo(redirectPath)) {
-    return '/';
-  }
-
-  return normalizeReturnTo(redirectPath) || '/';
+const getStringClaim = (claims: Record<string, unknown>, key: string) => {
+  const value = claims[key];
+  return typeof value === 'string' ? value : undefined;
 };
 
-const preparePassportAuthorize = async (c: Context, redirectPath?: string) => {
-  const state = generateState();
+const buildPassportProfileFromClaims = ({
+  email,
+  name,
+  role,
+  claims,
+}: {
+  email: string;
+  name: string;
+  role: string;
+  claims: Record<string, unknown>;
+}): PassportProfile => ({
+  email,
+  nickname:
+    getStringClaim(claims, 'nickname') ??
+    getStringClaim(claims, 'preferred_username') ??
+    name,
+  role,
+  avatar_url: getStringClaim(claims, 'picture'),
+  preferred_language: getStringClaim(claims, 'locale'),
+});
 
-  const restartUri = buildRestartUri(PassportAuthOptions.redirectUrl);
+const resolvePassportRole = async (email: string) => {
+  const passportUser = await getPassportUserByEmail(email);
+  return normalizeRole(passportUser?.role);
+};
 
-  const { consentUrl } = await requestPassportConsent(PassportAuthOptions, state, restartUri);
-
-  setCookie(c, PASSPORT_STATE_COOKIE, state, passportCookieOptions);
-
-  if (redirectPath) {
-    setCookie(c, PASSPORT_REDIRECT_COOKIE, `${state} ${redirectPath}`, passportCookieOptions);
+const assertAllowedPassportRole = (role: string | null): role is string => {
+  if (!role || !ALLOWED_PASSPORT_ROLES.has(role)) {
+    throw new AppError(AppErrorCode.UNAUTHORIZED, {
+      message: `Passport role not permitted: ${role ?? 'unknown'}`,
+      userMessage: 'Only Passport partner or core users can sign in.',
+      statusCode: 403,
+    });
   }
-
-  return consentUrl;
 };
 
 export const handlePassportAuthorize = async ({
@@ -309,9 +188,13 @@ export const handlePassportAuthorize = async ({
   c: Context;
   redirectPath?: string;
 }) => {
-  const consentUrl = await preparePassportAuthorize(c, redirectPath);
+  const redirectUrl = await createOAuthAuthorizeUrl({
+    c,
+    clientOptions: PassportAuthOptions,
+    redirectPath,
+  });
 
-  return c.json({ redirectUrl: consentUrl });
+  return c.json({ redirectUrl });
 };
 
 export const handlePassportAuthorizeRedirect = async ({
@@ -321,53 +204,41 @@ export const handlePassportAuthorizeRedirect = async ({
   c: Context;
   redirectPath?: string;
 }) => {
-  const consentUrl = await preparePassportAuthorize(c, redirectPath);
+  const redirectUrl = await createOAuthAuthorizeUrl({
+    c,
+    clientOptions: PassportAuthOptions,
+    redirectPath,
+  });
 
-  return c.redirect(consentUrl, 302);
+  return c.redirect(redirectUrl, 302);
 };
 
 export const handlePassportCallback = async (c: Context) => {
   try {
-    const code = c.req.query('code');
-    const state = c.req.query('state');
+    const {
+      email,
+      name,
+      sub,
+      accessToken,
+      accessTokenExpiresAt,
+      idToken,
+      redirectPath,
+      claims,
+    } = await validateOauth({ c, clientOptions: PassportAuthOptions });
 
-    const storedState = deleteCookie(c, PASSPORT_STATE_COOKIE);
-    const storedRedirect = deleteCookie(c, PASSPORT_REDIRECT_COOKIE) ?? '';
+    const normalizedRole = await resolvePassportRole(email);
+    assertAllowedPassportRole(normalizedRole);
 
-    if (!code || !storedState || state !== storedState) {
-      throw new AppError(AppErrorCode.INVALID_REQUEST, {
-        message: 'Invalid or missing consent state',
-      });
-    }
+    const profile = buildPassportProfileFromClaims({
+      email,
+      name,
+      role: normalizedRole,
+      claims,
+    });
 
-    const redirectPath = validateRedirect(storedRedirect, storedState);
-
-    const profile = await exchangePassportConsent(PassportAuthOptions, code);
-
-    const email = profile.email?.toLowerCase();
-    const normalizedRole = profile.role?.toLowerCase();
-
-    if (!email) {
-      throw new AppError(AuthenticationErrorCode.InvalidRequest, {
-        message: 'Passport profile missing email',
-      });
-    }
-
-    if (!normalizedRole || !ALLOWED_PASSPORT_ROLES.has(normalizedRole)) {
-      throw new AppError(AppErrorCode.UNAUTHORIZED, {
-        message: `Passport role not permitted: ${profile.role ?? 'unknown'}`,
-        userMessage: 'Only Passport partner or core users can sign in.',
-        statusCode: 403,
-      });
-    }
-
-    const providerAccountId = profile.id ?? profile.logto_id ?? email;
     const preferredLanguage = normalizePreferredLanguage(profile.preferred_language);
     const requestMetadata = c.get('requestMetadata');
-    const profileWithNormalizedRole: PassportProfile = {
-      ...profile,
-      role: normalizedRole,
-    };
+    const providerAccountId = sub;
 
     const existingAccount = await prisma.account.findFirst({
       where: {
@@ -401,8 +272,10 @@ export const handlePassportCallback = async (c: Context) => {
               type: 'oauth',
               provider: PassportAuthOptions.id,
               providerAccountId,
-              access_token: code,
+              access_token: accessToken,
+              expires_at: Math.floor(accessTokenExpiresAt.getTime() / 1000),
               token_type: 'Bearer',
+              id_token: idToken,
               userId: userWithSameEmail.id,
             },
           });
@@ -435,7 +308,7 @@ export const handlePassportCallback = async (c: Context) => {
           const user = await tx.user.create({
             data: {
               email,
-              name: profile.nickname ?? email,
+              name: profile.nickname ?? name ?? email,
               emailVerified: new Date(),
               password: null,
               source: PassportAuthOptions.id,
@@ -448,8 +321,10 @@ export const handlePassportCallback = async (c: Context) => {
               type: 'oauth',
               provider: PassportAuthOptions.id,
               providerAccountId,
-              access_token: code,
+              access_token: accessToken,
+              expires_at: Math.floor(accessTokenExpiresAt.getTime() / 1000),
               token_type: 'Bearer',
+              id_token: idToken,
               userId: user.id,
             },
           });
@@ -463,7 +338,7 @@ export const handlePassportCallback = async (c: Context) => {
       }
     }
 
-    await updateUserProfileFromPassport(userId, profileWithNormalizedRole, requestMetadata);
+    await updateUserProfileFromPassport(userId, profile, requestMetadata);
 
     if (preferredLanguage) {
       setLanguageCookie(c, preferredLanguage);

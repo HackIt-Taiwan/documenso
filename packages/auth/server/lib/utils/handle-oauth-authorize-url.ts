@@ -32,10 +32,18 @@ type HandleOAuthAuthorizeUrlOptions = {
 
 const oauthCookieMaxAge = 60 * 10; // 10 minutes.
 
-export const handleOAuthAuthorizeUrl = async (options: HandleOAuthAuthorizeUrlOptions) => {
+const getPromptValue = (options: HandleOAuthAuthorizeUrlOptions) => {
+  if (typeof options.prompt !== 'undefined') {
+    return options.prompt;
+  }
+
+  return process.env.NEXT_PRIVATE_OIDC_PROMPT ?? 'login';
+};
+
+export const createOAuthAuthorizeUrl = async (options: HandleOAuthAuthorizeUrlOptions) => {
   const { c, clientOptions, redirectPath } = options;
 
-  if (!clientOptions.clientId || !clientOptions.clientSecret) {
+  if (!clientOptions.clientId || !clientOptions.wellKnownUrl) {
     throw new AppError(AppErrorCode.NOT_SETUP);
   }
 
@@ -45,7 +53,7 @@ export const handleOAuthAuthorizeUrl = async (options: HandleOAuthAuthorizeUrlOp
 
   const oAuthClient = new OAuth2Client(
     clientOptions.clientId,
-    clientOptions.clientSecret,
+    clientOptions.clientSecret ?? '',
     clientOptions.redirectUrl,
   );
 
@@ -62,10 +70,9 @@ export const handleOAuthAuthorizeUrl = async (options: HandleOAuthAuthorizeUrlOp
     scopes,
   );
 
-  // Pass the prompt to the authorization endpoint.
-  if (process.env.NEXT_PRIVATE_OIDC_PROMPT !== '') {
-    const prompt = process.env.NEXT_PRIVATE_OIDC_PROMPT ?? 'login';
+  const prompt = getPromptValue(options);
 
+  if (prompt !== '') {
     url.searchParams.append('prompt', prompt);
   }
 
@@ -89,7 +96,14 @@ export const handleOAuthAuthorizeUrl = async (options: HandleOAuthAuthorizeUrlOp
     });
   }
 
+  return url.toString();
+};
+
+export const handleOAuthAuthorizeUrl = async (options: HandleOAuthAuthorizeUrlOptions) => {
+  const { c } = options;
+  const redirectUrl = await createOAuthAuthorizeUrl(options);
+
   return c.json({
-    redirectUrl: url.toString(),
+    redirectUrl,
   });
 };

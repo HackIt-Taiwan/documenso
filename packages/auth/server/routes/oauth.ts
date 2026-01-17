@@ -30,7 +30,7 @@ export const oauthRoute = new Hono<HonoAuthContext>()
   })
 
   /**
-   * Passport consent authorize endpoint.
+   * Passport OIDC authorize endpoint.
    */
   .post('/authorize/passport', sValidator('json', ZOAuthAuthorizeSchema), async (c) => {
     const { redirectPath } = c.req.valid('json');
@@ -39,7 +39,7 @@ export const oauthRoute = new Hono<HonoAuthContext>()
   })
 
   /**
-   * Passport consent authorize endpoint (redirects immediately).
+   * Passport OIDC authorize endpoint (redirects immediately).
    */
   .get('/authorize/passport', async (c) => {
     const redirectPath = c.req.query('redirectPath') ?? c.req.query('redirect');

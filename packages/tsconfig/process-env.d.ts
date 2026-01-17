@@ -15,6 +15,7 @@ declare namespace NodeJS {
     PASSPORT_API_BASE_URL?: string;
     PASSPORT_API_TOKEN?: string;
     PASSPORT_CLIENT_ID?: string;
+    PASSPORT_CLIENT_SECRET?: string;
 
     NEXT_PRIVATE_DATABASE_URL: string;
     NEXT_PRIVATE_ENCRYPTION_KEY: string;

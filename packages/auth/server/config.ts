@@ -10,19 +10,10 @@ export type OAuthClientOptions = {
   id: string;
   scope: string[];
   clientId: string;
-  clientSecret: string;
+  clientSecret?: string;
   wellKnownUrl: string;
   redirectUrl: string;
   bypassEmailVerification?: boolean;
-};
-
-type PassportConsentOptions = {
-  id: string;
-  clientId: string;
-  apiBaseUrl: string;
-  apiToken: string;
-  redirectUrl: string;
-  requestedFields: string[];
 };
 
 const normalizePassportApiBaseUrl = () => {
@@ -33,6 +24,16 @@ const normalizePassportApiBaseUrl = () => {
   }
 
   return /\/api$/i.test(baseUrl) ? baseUrl : `${baseUrl}/api`;
+};
+
+const getPassportWellKnownUrl = () => {
+  const apiBaseUrl = normalizePassportApiBaseUrl();
+
+  if (!apiBaseUrl) {
+    return '';
+  }
+
+  return `${apiBaseUrl}/oidc/.well-known/openid-configuration`;
 };
 
 export const GoogleAuthOptions: OAuthClientOptions = {
@@ -65,11 +66,12 @@ export const OidcAuthOptions: OAuthClientOptions = {
   bypassEmailVerification: env('NEXT_PRIVATE_OIDC_SKIP_VERIFY') === 'true',
 };
 
-export const PassportAuthOptions: PassportConsentOptions = {
+export const PassportAuthOptions: OAuthClientOptions = {
   id: 'passport',
   clientId: env('PASSPORT_CLIENT_ID') ?? env('NEXT_PRIVATE_OIDC_CLIENT_ID') ?? '',
-  apiBaseUrl: normalizePassportApiBaseUrl(),
-  apiToken: env('PASSPORT_API_TOKEN') ?? '',
+  clientSecret: env('PASSPORT_CLIENT_SECRET') ?? env('NEXT_PRIVATE_OIDC_CLIENT_SECRET') ?? '',
   redirectUrl: `${NEXT_PUBLIC_WEBAPP_URL()}/api/auth/callback/passport`,
-  requestedFields: ['email', 'nickname', 'avatar_url', 'preferred_language', 'role'],
+  scope: ['openid', 'email', 'profile'],
+  wellKnownUrl: getPassportWellKnownUrl(),
+  bypassEmailVerification: true,
 };
