@@ -27,7 +27,6 @@ export const IS_OIDC_SSO_ENABLED = Boolean(
 
 export const IS_PASSPORT_SSO_ENABLED = Boolean(
   env('PASSPORT_API_BASE_URL') &&
-    env('PASSPORT_API_TOKEN') &&
     (env('PASSPORT_CLIENT_ID') || env('NEXT_PRIVATE_OIDC_CLIENT_ID')),
 );
 

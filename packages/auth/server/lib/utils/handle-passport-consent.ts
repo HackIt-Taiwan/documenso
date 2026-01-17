@@ -4,7 +4,6 @@ import { setCookie } from 'hono/cookie';
 
 import { APP_I18N_OPTIONS, type SupportedLanguageCodes } from '@documenso/lib/constants/i18n';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
-import { getPassportUserByEmail } from '@documenso/lib/server-only/passport/get-passport-user';
 import { setAvatarImage } from '@documenso/lib/server-only/profile/set-avatar-image';
 import { onCreateUserHook } from '@documenso/lib/server-only/user/create-user';
 import { env } from '@documenso/lib/utils/env';
@@ -166,11 +165,6 @@ const buildPassportProfileFromClaims = ({
   preferred_language: getStringClaim(claims, 'locale'),
 });
 
-const resolvePassportRole = async (email: string) => {
-  const passportUser = await getPassportUserByEmail(email);
-  return normalizeRole(passportUser?.role);
-};
-
 const assertAllowedPassportRole = (role: string | null): role is string => {
   if (!role || !ALLOWED_PASSPORT_ROLES.has(role)) {
     throw new AppError(AppErrorCode.UNAUTHORIZED, {
@@ -226,7 +220,7 @@ export const handlePassportCallback = async (c: Context) => {
       claims,
     } = await validateOauth({ c, clientOptions: PassportAuthOptions });
 
-    const normalizedRole = await resolvePassportRole(email);
+    const normalizedRole = normalizeRole(getStringClaim(claims, 'role'));
     assertAllowedPassportRole(normalizedRole);
 
     const profile = buildPassportProfileFromClaims({
