@@ -73,93 +73,98 @@ export const createOrganisation = async ({
       });
   }
 
-  return await prisma.$transaction(async (tx) => {
-    const organisationSetting = await tx.organisationGlobalSettings.create({
-      data: {
-        ...generateDefaultOrganisationSettings(),
-        id: generateDatabaseId('org_setting'),
-      },
-    });
-
-    const organisationClaim = await tx.organisationClaim.create({
-      data: {
-        id: generateDatabaseId('org_claim'),
-        originalSubscriptionClaimId: claim.id,
-        ...createOrganisationClaimUpsertData(claim),
-      },
-    });
-
-    const organisationAuthenticationPortal = await tx.organisationAuthenticationPortal.create({
-      data: {
-        id: generateDatabaseId('org_sso'),
-        enabled: false,
-        clientId: '',
-        clientSecret: '',
-        wellKnownUrl: '',
-      },
-    });
-
-    const orgIdAndUrl = prefixedId('org');
-
-    const organisation = await tx.organisation
-      .create({
+  return await prisma.$transaction(
+    async (tx) => {
+      const organisationSetting = await tx.organisationGlobalSettings.create({
         data: {
-          id: orgIdAndUrl,
-          name,
-          type,
-          url: url || orgIdAndUrl,
-          ownerUserId: userId,
-          organisationGlobalSettingsId: organisationSetting.id,
-          organisationClaimId: organisationClaim.id,
-          organisationAuthenticationPortalId: organisationAuthenticationPortal.id,
-          groups: {
-            create: ORGANISATION_INTERNAL_GROUPS.map((group) => ({
-              ...group,
-              id: generateDatabaseId('org_group'),
-            })),
-          },
-          customerId: customerIdToUse,
+          ...generateDefaultOrganisationSettings(),
+          id: generateDatabaseId('org_setting'),
         },
-        include: {
-          groups: true,
-        },
-      })
-      .catch((err) => {
-        if (err.code === 'P2002') {
-          throw new AppError(AppErrorCode.ALREADY_EXISTS, {
-            message: 'Organisation URL already exists',
-          });
-        }
-
-        throw err;
       });
 
-    const adminGroup = organisation.groups.find(
-      (group) => group.organisationRole === OrganisationMemberRole.ADMIN,
-    );
-
-    if (!adminGroup) {
-      throw new AppError(AppErrorCode.UNKNOWN_ERROR, {
-        message: 'Admin group not found',
+      const organisationClaim = await tx.organisationClaim.create({
+        data: {
+          id: generateDatabaseId('org_claim'),
+          originalSubscriptionClaimId: claim.id,
+          ...createOrganisationClaimUpsertData(claim),
+        },
       });
-    }
 
-    await tx.organisationMember.create({
-      data: {
-        id: generateDatabaseId('member'),
-        userId,
-        organisationId: organisation.id,
-        organisationGroupMembers: {
-          create: {
-            id: generateDatabaseId('group_member'),
-            groupId: adminGroup.id,
+      const organisationAuthenticationPortal = await tx.organisationAuthenticationPortal.create({
+        data: {
+          id: generateDatabaseId('org_sso'),
+          enabled: false,
+          clientId: '',
+          clientSecret: '',
+          wellKnownUrl: '',
+        },
+      });
+
+      const orgIdAndUrl = prefixedId('org');
+
+      const organisation = await tx.organisation
+        .create({
+          data: {
+            id: orgIdAndUrl,
+            name,
+            type,
+            url: url || orgIdAndUrl,
+            ownerUserId: userId,
+            organisationGlobalSettingsId: organisationSetting.id,
+            organisationClaimId: organisationClaim.id,
+            organisationAuthenticationPortalId: organisationAuthenticationPortal.id,
+            groups: {
+              create: ORGANISATION_INTERNAL_GROUPS.map((group) => ({
+                ...group,
+                id: generateDatabaseId('org_group'),
+              })),
+            },
+            customerId: customerIdToUse,
+          },
+          include: {
+            groups: true,
+          },
+        })
+        .catch((err) => {
+          if (err.code === 'P2002') {
+            throw new AppError(AppErrorCode.ALREADY_EXISTS, {
+              message: 'Organisation URL already exists',
+            });
+          }
+
+          throw err;
+        });
+
+      const adminGroup = organisation.groups.find(
+        (group) => group.organisationRole === OrganisationMemberRole.ADMIN,
+      );
+
+      if (!adminGroup) {
+        throw new AppError(AppErrorCode.UNKNOWN_ERROR, {
+          message: 'Admin group not found',
+        });
+      }
+
+      await tx.organisationMember.create({
+        data: {
+          id: generateDatabaseId('member'),
+          userId,
+          organisationId: organisation.id,
+          organisationGroupMembers: {
+            create: {
+              id: generateDatabaseId('group_member'),
+              groupId: adminGroup.id,
+            },
           },
         },
-      },
-    });
+      });
 
-    return organisation;
-  });
+      return organisation;
+    },
+    {
+      timeout: 15000,
+    },
+  );
 };
 
 type CreatePersonalOrganisationOptions = {
